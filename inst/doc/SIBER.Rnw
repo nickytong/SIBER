@@ -1,0 +1,274 @@
+%\VignetteIndexEntry{SIBER Vignette}
+%\VignetteDepends{mclust,edgeR,doSNOW}
+%\VignetteKeywords{SIBER}
+%\VignettePackage{SIBER}
+
+\documentclass{article}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage{natbib}
+
+\pagestyle{myheadings}
+\markright{Pan Tong}
+
+\setlength{\topmargin}{0in}
+\setlength{\textheight}{8in}
+\setlength{\textwidth}{6.5in}
+\setlength{\oddsidemargin}{0in}
+\setlength{\evensidemargin}{0in}
+
+\title{SIBER User Manual} 
+\author{Pan Tong and Kevin R Coombes}
+\date{\today}
+
+\usepackage{Sweave}
+\begin{document}
+
+\SweaveOpts{prefix.string=SIBER}
+
+\maketitle
+
+\tableofcontents
+
+<<echo=FALSE>>=
+options(width=80)
+options(continue=' ')
+@ 
+
+\section{Introduction}
+\texttt{SIBER} (\textbf{S}ystematic \textbf{I}dentification of
+\textbf{B}imodally \textbf{E}xpressed genes using \textbf{R}NAseq
+data) is an R package that effectively identifies bimodally expressed
+genes from RNAseq data based on Bimodality Index. SIBER models the
+RNAseq data in the finite mixture modeling framework and incorporates
+mechanisms for dealing with RNAseq normalization. Three types of
+mixture models are implemented, namely, the mixture of log normal,
+negative binomial or generalized poisson distribution. For
+completeness, we also add the normal mixture model that has been used
+to identify bimodal genes from microarray data.
+
+\texttt{SIBER} proceeds in two steps. The first step fits a
+two-component mixture model.  The second step calculates the
+Bimodality Index corresponding to the assumed mixture distribution.
+Four types of mixture models are implemented: log normal (LN),
+Negative Binomial (NB), Generalized Poisson (GP) and normal mixture
+(NL).
+
+Besides identifying bimodally expressed genes, \texttt{SIBER} provides
+functionalities to fit 2-component mixture distribution from LN, NB
+and GP models. A degenerate case where one component becomes a point
+mass at zero (called 0-inflation) is also incorporated. The 0-inflated
+model is designed specificaly to deal with the observed zero count in
+real RNAseq data.
+
+\section{Using SIBER}
+
+\subsection{A Quick Example}
+
+Of course, we need to load the \texttt{SIBER} package.
+<<loadLibrary>>=
+library(SIBER)
+@ 
+
+We simulate RNAseq count data from 1-component Negative Binomial
+distribution as below:
+
+<<keep.source=TRUE>>=
+set.seed(1000)
+N <- 100 # sample size
+G <- 200 # number of simulated genes
+# RNAseq count data simulated from NB model with mean 1000, dispersion=0.2
+Dat <-  matrix(rnbinom(G*N, mu=1000, size=1/0.2), nrow=G) 
+@
+
+We use the first gene for our illustration.  We first fit the LN
+mixture model and calculate BI:
+
+<<>>=
+SIBER(y=Dat[1, ], model='LN')
+@ 
+
+To apply the NB model: 
+
+<<keep.source=TRUE>>=
+SIBER(y=Dat[1, ], model='NB')
+@
+
+To apply the GP model: 
+
+<<>>=
+SIBER(y=Dat[1, ], model='GP')
+@
+
+For the NL model, we first transform the data such that it follows
+normal mixture distribution.
+
+<<>>=
+SIBER(y=log(Dat[1, ]+1), model='NL')
+@ 
+
+
+Since the data is simulated from 1-component model, all of the
+calculated BIs are small indicating lack of bimodality.
+
+\subsection{Dealing With RNAseq Normalization}
+Previously, only the raw RNAseq count data is passed to
+\texttt{SIBER}. It is easy to incorporate RNAseq normalization in the
+mixture modeling. Currently, the RPKM \citep{Mortazavi2008}, TMM
+\citep{Robinson2010a} and RLE \citep{Anders2010} methods have been
+widely used to normalize RNAseq data.  Once the normalization constant
+is estimated, i.e. using the \texttt{edgeR} package
+\citep{Robinson2010}, we can easily calculate the BI after adjusting
+for the normalization.
+
+In the following, we use \texttt{edgeR} package to calculate the
+normalization factor using TMM approach.
+<<>>=
+library(edgeR)
+TMM <- calcNormFactors(Dat, method='TMM')
+@
+
+We now incorporate the TMM normalization into SIBER. We use the LN
+model below. The calculation with other models is similar.  Note that
+our definition of the normalization factor differs from \texttt{edgeR}
+package. In our notation, $\textrm{E} [C_s]=d_s \mu_{c(s)}$ where
+$C_s$ is the observed raw count for sample s, $d_s$ is the
+normalization factor applied to sample s, c(s)=\{1, 2\} denotes which
+of the two components sample s comes from and $\mu_1, \mu_2$ are mean
+parameters for the two components. Therefore, our definition of $d_s$
+maps the true expression level to the observed counts.  In contrast,
+the normalization constant estimated by \texttt{edgeR} maps the
+observed counts to the estimated true expression. As a result, we need
+to pass the reciprocal of the normalization vector estimated by
+\texttt{edgeR} to SIBER.
+
+<<>>=
+SIBER(y=Dat[1, ], d=1/TMM, model='LN')
+@
+
+\subsection{Parallelizing \texttt{SIBER}}
+When there are many genes to be fitted, we can easily parallel
+\texttt{SIBER} to speed up the computation.  There are several ways
+for parallelization. Here we choose the \texttt{foreach} package for
+the backend. The workers are requested and registered by the
+\texttt{doSNOW} package.
+
+<<>>=
+library(doSNOW)
+cl <- makeCluster(3, type = "SOCK")
+registerDoSNOW(cl)
+@ 
+
+Note that the above command also works on Linux servers. However, it
+requests master nodes when run within R. For good practice, we can use
+qsub such that the computation is done in the background.
+
+Now we perform SIBER for all simulated genes with parallel capabillity.
+
+<<parallelAnalysis>>=
+func <- function(i) {
+	SIBER(y=Dat[i, ], model='LN')
+}
+BIinfo_LN <- foreach(i=1:nrow(Dat), .combine='rbind', .packages='SIBER') %dopar% {
+	func(i)
+}
+BIinfo_LN[1:3, ]
+@
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Fitting Two-component Mixture Models}
+\texttt{SIBER} package provides functions to fit three types of
+mixture models besides detecting bimodally expressed genes. These
+include: (1) 2-component mixture with equal dispersion or variance (E
+model); (2) 2-component mixture with unequal dispersion or variance (V
+model); (3) 0-inflated model.  All three types of distributions are
+implemented.
+
+The rule to fit 0-inflated model is that the observed percentage of
+count exceeds the user specified threshold. This rule overrides the
+model argument (E or V) when observed percentae of zero count exceeds
+the threshold.
+
+First, we illustrate how to fit the E and V models. We use the
+simulated data from LN model. The gene we use is not 0-inflated. By
+default, the minimum observed percentage of zero is not achieved
+(zeroPercentThr=0.2 ). Hence, the 0-inflated model is disabled. In
+this case, the model specification will be effective.
+
+<<keep.source=TRUE>>=
+data(simDat)
+ind <- 1
+# true parameter generating the simulated data
+parList$LN[ind, ]
+# fit by E model
+fitLN(y=dataList$LN[ind, ], base=exp(1), eps=1, model='E')
+# fit by V model. 
+fitLN(y=dataList$LN[ind, ], base=exp(1), eps=1, model='V')
+
+@
+
+Now we choose a gene that has zero inflation and illustrate how to fit
+a 0-inflated model:
+
+<<keep.source=TRUE>>=
+ind <- 5 # 0-inflated gene
+# true parameter generating the simulated data
+parList$LN[ind, ]
+# fit by E model. 0-inflated model is disabled by setting zeroPercentThr=1.
+# the result is biased. 
+fitLN(y=dataList$LN[ind, ], base=exp(1), eps=1, model='E', zeroPercentThr=1)
+# fit by 0-inflated model. 0-inflated model overrides the E model since percentage
+# of observed zero counts exceeds the threshold.
+fitLN(y=dataList$LN[ind, ], base=exp(1), eps=1, model='E', zeroPercentThr=0.2)
+
+@
+
+Here we see that when there is severe 0-inflation, fitting a E (or V)
+model gives biased estimate. Instead, our 0-inflated model works
+pretty well.
+
+The usage of fitNB(), fitGP() is quite similar and is omitted in this
+manual.
+
+\section{Session Info}
+After all the computations, we close the connection to the workers.
+
+<<>>=
+stopCluster(cl)
+@
+
+<<sessionInfo>>=
+getwd()
+sessionInfo()
+@ 
+
+
+\begin{thebibliography}{1}
+\bibitem{Anders2010}
+S.~Anders and W.~Huber.
+\newblock Differential expression analysis for sequence count data.
+\newblock {\em Genome Biol}, 11(10):R106, 2010.
+
+\bibitem{Mortazavi2008}
+A.~Mortazavi, B.A. Williams, K.~McCue, L.~Schaeffer, and B.~Wold.
+\newblock Mapping and quantifying mammalian transcriptomes by rna-seq.
+\newblock {\em Nature methods}, 5(7):621--628, 2008.
+
+\bibitem{Robinson2010}
+M.D. Robinson, D.J. McCarthy, and G.K. Smyth.
+\newblock edger: a bioconductor package for differential expression analysis of
+  digital gene expression data.
+\newblock {\em Bioinformatics}, 26(1):139--140, 2010.
+
+\bibitem{Robinson2010a}
+M.D. Robinson, A.~Oshlack, et~al.
+\newblock A scaling normalization method for differential expression analysis
+  of rna-seq data.
+\newblock {\em Genome Biol}, 11(3):R25, 2010.
+
+\end{thebibliography}
+
+
+\end{document}

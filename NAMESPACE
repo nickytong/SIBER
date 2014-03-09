@@ -1,0 +1,7 @@
+# Exported functions
+export(SIBER, fitLN, fitNB, fitGP, fitNL)
+       
+       
+
+  
+

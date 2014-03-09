@@ -1,0 +1,18 @@
+Package: SIBER
+Type: Package
+Title: Systematic Identification of Bimodally Expressed Genes Using
+        RNAseq Data
+Version: 0.9.3
+Author: Pan Tong, Kevin R Coombes
+Maintainer: Pan Tong <nickytong@gmail.com>
+Description: SIBER(Systematic Identification of Bimodally Expressed genes 
+ using RNAseq data) effectively identifies bimodally expressed genes from
+ RNAseq data based on Bimodality Index. SIBER models the  RNAseq data in
+ the finite mixture modeling framework and incorporates mechanisms  for
+ dealing with RNAseq normalization. Three types of mixture models are
+ implemented,  namely, the mixture of log normal, negative binomial, or 
+ generalized poisson distribution.
+License: GPL (>= 2)
+Depends: mclust
+Suggests: edgeR,doSNOW
+Packaged: 2012-09-10 19:00:38 UTC; KRCoombes

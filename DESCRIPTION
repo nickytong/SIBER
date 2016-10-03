@@ -2,7 +2,7 @@ Package: SIBER
 Type: Package
 Title: Systematic Identification of Bimodally Expressed Genes Using
         RNAseq Data
-Version: 0.9.3
+Version: 0.9.5
 Author: Pan Tong, Kevin R Coombes
 Maintainer: Pan Tong <nickytong@gmail.com>
 Description: SIBER(Systematic Identification of Bimodally Expressed genes 
@@ -16,3 +16,7 @@ License: GPL (>= 2)
 Depends: mclust
 Suggests: edgeR,doSNOW
 Packaged: 2012-09-10 19:00:38 UTC; KRCoombes
+Collate:
+    'Beta.R'
+    'BetaReg.R'
+    'siberRaw2.R'

@@ -1,0 +1,6 @@
+----------------------------------------------------------------
+SIBER 0.9.4
+----------------------------------------------------------------
+add fitBeta to fit a 2-component beta-mixture model
+SIBER() also adds an option for model='Beta' so that BI can be computed for 2-component beta mixture.
+This can be used to compute BI for methylation data.

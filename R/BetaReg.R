@@ -6,6 +6,18 @@ getMean <-function(mu,phi) inv_logit(mu)
 getPrecision <-function(mu,phi) exp(phi)
 getVar <-function(mu,phi) getMean(mu,phi)^2*getBeta(mu, phi)/getAlpha(mu, phi)/(getPrecision(mu, phi)+1)
 
+Getter <- function(obj, what='avail'){
+	#browser()
+	if(what %in% names(attributes(obj))){
+		res <- attributes(obj)[[what]]
+	} else if (what =='avail'){
+		res <- names(attributes(obj))
+	} else {
+		res <- NULL
+	}
+	res
+}
+
 #getVar(mu1, phi1)
 fitBetaReg <- function(y){
 	res <- rep(NA, 7)	# res=c(alpha1, beta1, alpha2, beta2 and pi1, logLik, BIC)

@@ -756,6 +756,7 @@ fitSIBERonMat <- function(mat, model='NL', prune=TRUE, q=0.03, parallel=TRUE, co
 		cl <- createCluster(core=core, logfile = "/dev/null", export='SIBER2', lib = c('SIBER'))
 		on.exit(stopCluster(cl))
 	}
+	#browser()
 	tmpRes <- adply(mat, 1, SIBER2, model=model, .parallel=parallel)
     res <- moveColumnToRowName(tmpRes)
 	#browser()

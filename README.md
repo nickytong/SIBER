@@ -7,6 +7,11 @@ a mixture of Gaussian, Negative Bimomial and Generalized Poisson Models.
 
 Our approach compared favorably with alternative methods, including profile analysis using clustering and kurtosis (PACK) and cancer outlier profile analysis (COPA). Our method is robust, powerful, invariant to shifting and scaling, has no blind spots and has a sample-size-free interpretation.
 
+Following is an example demonstrating on the pattern of measurements SIBER is good at detecting:
+
+
+![SIBER examples](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3582265/bin/bts713f4p.jpg)
+
 ## Installation
 
 The [**devtools** package](http://cran.r-project.org/web/packages/devtools/index.html) is used to install R packages hosted on Github. To install **SIBER**, type the following commands in the R console:

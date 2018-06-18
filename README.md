@@ -1,6 +1,6 @@
 # SIBER
 
-SIBER (systematic identification of bimodally expressed genes using RNAseq data) is a methodology I developed to identify aberrant gene expression pattern which falls into the realm of outlier detection in statistics. 
+SIBER (systematic identification of bimodally expressed genes using RNAseq data) is a methodology I developed to identify aberrant gene expression pattern which falls into the realm of outlier detection in statistics.  
 
 The **SIBER** R package achieved this by calculating the Bimodality Index for both microarray and RNAseq data using
 a mixture of Gaussian, Negative Bimomial and Generalized Poisson Models. 
